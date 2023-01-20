@@ -57,6 +57,12 @@ class Products extends Admin_Controller
         echo json_encode($data);
     }
 
+    public function fetchProductAttributeByProductId($id)
+    {
+        $data = $this->model_stocks->getProductAttributeByProductId($id);
+        echo json_encode($data);
+    }
+
     /*
     * It Fetches the products data from the product table 
     * this function is called from the datatable ajax function
@@ -162,11 +168,16 @@ class Products extends Admin_Controller
                 $create_product = $this->model_products->create($data_product);
                 $product = $this->model_products->getProductDataBySku($sku);
             }
-            $attribute = $this->model_attributes->getAttributeData($product['attribute_id']);
-            $attribute_value_id = $this->input->post($attribute['name']);
 
-            // before create stock attribute, check stock if there any exist attribute for the product
-            $checkStockExist = $this->model_stocks->getRawStockData($product['id'], $attribute_value_id); // check if data stock exist
+            // if attribute form not empty check stock if there any exist attribute for the product
+            if (!empty($product['attribute_id'])) {
+                $attribute = $this->model_attributes->getAttributeData($product['attribute_id']);
+                $attribute_value_id = $this->input->post($attribute['name']);
+                $checkStockExist = $this->model_stocks->getRawStockData($product['id'], $attribute_value_id); // check if data stock exist
+            }
+
+            // if attribute empty and product not yet registered, add record
+            $checkStockExist = $this->model_stocks->getRawStockData($product['id']); // check if data stock exist
             if (empty($checkStockExist)) {
                 $data_stock = array(
                     'product_id' => $product['id'],
