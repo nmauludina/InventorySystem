@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 class Model_products extends CI_Model
 {
@@ -10,7 +10,7 @@ class Model_products extends CI_Model
 	/* get the brand data */
 	public function getProductData($id = null)
 	{
-		if($id) {
+		if ($id) {
 			$sql = "SELECT * FROM `products` where id = ?";
 			$query = $this->db->query($sql, array($id));
 			return $query->row_array();
@@ -19,6 +19,45 @@ class Model_products extends CI_Model
 		$sql = "SELECT * FROM `products` ORDER BY id DESC";
 		$query = $this->db->query($sql);
 		return $query->result_array();
+	}
+
+	public function getProductDataBySku($sku)
+	{
+		$sql = "SELECT * FROM `products` where sku = ?";
+		$query = $this->db->query($sql, array($sku));
+		return $query->row_array();
+	}
+
+	public function getAutocompleteProductData($params = array())
+	{
+		$this->db->select('*');
+		$this->db->from('products');
+
+		//fetch data by conditions
+		if (array_key_exists("conditions", $params)) {
+			foreach ($params['conditions'] as $key => $value) {
+				$this->db->where($key, $value);
+			}
+		}
+
+		//search by terms
+		if (!empty($params['searchTerm'])) {
+			$this->db->like('name', $params['searchTerm']);
+		}
+
+		$this->db->order_by('name', 'asc');
+
+		if (array_key_exists("id", $params)) {
+			$this->db->where('id', $params['id']);
+			$query = $this->db->get();
+			$result = $query->row_array();
+		} else {
+			$query = $this->db->get();
+			$result = ($query->num_rows() > 0) ? $query->result_array() : FALSE;
+		}
+
+		//return fetched data
+		return $result;
 	}
 
 	public function getActiveProductData()
@@ -30,7 +69,7 @@ class Model_products extends CI_Model
 
 	public function create($data)
 	{
-		if($data) {
+		if ($data) {
 			$insert = $this->db->insert('products', $data);
 			return ($insert == true) ? true : false;
 		}
@@ -38,7 +77,7 @@ class Model_products extends CI_Model
 
 	public function update($data, $id)
 	{
-		if($data && $id) {
+		if ($data && $id) {
 			$this->db->where('id', $id);
 			$update = $this->db->update('products', $data);
 			return ($update == true) ? true : false;
@@ -47,7 +86,7 @@ class Model_products extends CI_Model
 
 	public function remove($id)
 	{
-		if($id) {
+		if ($id) {
 			$this->db->where('id', $id);
 			$delete = $this->db->delete('products');
 			return ($delete == true) ? true : false;
@@ -60,5 +99,4 @@ class Model_products extends CI_Model
 		$query = $this->db->query($sql);
 		return $query->num_rows();
 	}
-
 }

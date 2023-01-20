@@ -234,6 +234,16 @@ class Attributes extends Admin_Controller
 		echo json_encode($result);
 	}
 
+		/* 
+	* fetch the attribute value only based on the attribute parent id 
+	*/
+	public function fetchAttributeValueDataOnly($attribute_parent_id)
+	{
+		$data = $this->model_attributes->getAttributeValueData($attribute_parent_id);
+
+		echo json_encode($data);
+	}
+
 	/* 
 	* fetch the attribute value by the attritute value id  
 	*/
