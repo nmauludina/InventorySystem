@@ -151,8 +151,8 @@ class Products extends Admin_Controller
             $upload_image = $this->upload_image();
 
             $sku = $this->input->post('sku');
-            $product = $this->model_products->getProductDataBySku($sku); // check if data product exist
-            if (empty($product)) {
+            $product = $this->model_products->getProductDataBySku($sku);
+            if (empty($product)) { // if product is not in the table create product
                 $data_product = array(
                     'name' => $this->input->post('name'),
                     'sku' => $this->input->post('sku'),
@@ -167,6 +167,8 @@ class Products extends Admin_Controller
                 );
                 $create_product = $this->model_products->create($data_product);
                 $product = $this->model_products->getProductDataBySku($sku);
+            } else { // else let create product be 1
+                $create_product = 1;
             }
 
             // if attribute form not empty check stock if there any exist attribute for the product
@@ -174,10 +176,11 @@ class Products extends Admin_Controller
                 $attribute = $this->model_attributes->getAttributeData($product['attribute_id']);
                 $attribute_value_id = $this->input->post($attribute['name']);
                 $checkStockExist = $this->model_stocks->getRawStockData($product['id'], $attribute_value_id); // check if data stock exist
+            } else {
+                // if attribute empty and product not yet registered, add record
+                $checkStockExist = $this->model_stocks->getRawStockData($product['id']); // check if data stock exist
             }
 
-            // if attribute empty and product not yet registered, add record
-            $checkStockExist = $this->model_stocks->getRawStockData($product['id']); // check if data stock exist
             if (empty($checkStockExist)) {
                 $data_stock = array(
                     'product_id' => $product['id'],

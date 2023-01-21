@@ -21,7 +21,7 @@ class Model_stocks extends CI_Model
     if ($product_id) {
       $this->db->select();
       $this->db->from('stocks');
-      $this->db->where('id', $product_id);
+      $this->db->where('product_id', $product_id);
       $query = $this->db->get();
       return $query->result_array();
     }
