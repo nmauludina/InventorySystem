@@ -8,30 +8,24 @@ class Model_stocks extends CI_Model
     parent::__construct();
   }
 
-  public function getRawStockData($product_id = null, $attribute_value_id = null)
+  public function getRawStockData($id = null, $product_id = null, $attribute_value_id = null)
   {
-    if ($product_id && $attribute_value_id) {
-      $where_clause = array('product_id' => $product_id, 'attribute_value_id' => $attribute_value_id);
-      $this->db->select();
-      $this->db->from('stocks');
-      $this->db->where($where_clause);
-      $query = $this->db->get();
-      return $query->result_array();
-    }
-    if ($product_id) {
-      $this->db->select();
-      $this->db->from('stocks');
-      $this->db->where('product_id', $product_id);
-      $query = $this->db->get();
-      return $query->result_array();
-    }
     $this->db->select();
     $this->db->from('stocks');
+    if ($id) {
+      $this->db->where('id', $id);
+    }
+    if ($product_id) {
+      $this->db->where('product_id', $product_id);
+    }
+    if ($attribute_value_id) {
+      $this->db->where('attribute_value_id', $attribute_value_id);
+    }
     $query = $this->db->get();
     return $query->result_array();
   }
 
-  public function getStockData()
+  public function getStockData($id = null)
   {
     $this->db->select('stocks.id, products.name , products.sku , products.price');
     $this->db->select('products.image , products.description, products.brands_id');
@@ -43,6 +37,9 @@ class Model_stocks extends CI_Model
     $this->db->join('attribute_values', 'stocks.attribute_value_id=attribute_values.id', 'left');
     $this->db->join('attributes', 'products.attribute_id=attributes.id', 'left');
     $this->db->order_by('stocks.id', 'asc');
+    if ($id) {
+      $this->db->where('stocks.id', $id);
+    }
     $query = $this->db->get();
     return $query->result_array();
   }
@@ -61,7 +58,7 @@ class Model_stocks extends CI_Model
 
     $this->db->order_by('stocks.id', 'asc');
     $this->db->where('products.id', $id);
-    if (isset($attribute_value_id)) {
+    if ($attribute_value_id) {
       $this->db->where('attribute_values.id', $attribute_value_id);
     }
     $query = $this->db->get();
@@ -90,6 +87,15 @@ class Model_stocks extends CI_Model
     if ($data) {
       $insert = $this->db->insert('stocks', $data);
       return ($insert == true) ? true : false;
+    }
+  }
+
+  public function update($data, $id)
+  {
+    if ($data && $id) {
+      $this->db->where('id', $id);
+      $update = $this->db->update('stocks', $data);
+      return ($update == true) ? true : false;
     }
   }
 }

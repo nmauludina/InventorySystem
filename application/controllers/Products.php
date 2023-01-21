@@ -175,10 +175,10 @@ class Products extends Admin_Controller
             if (!empty($product['attribute_id'])) {
                 $attribute = $this->model_attributes->getAttributeData($product['attribute_id']);
                 $attribute_value_id = $this->input->post($attribute['name']);
-                $checkStockExist = $this->model_stocks->getRawStockData($product['id'], $attribute_value_id); // check if data stock exist
+                $checkStockExist = $this->model_stocks->getRawStockData(null, $product['id'], $attribute_value_id); // check if data stock exist
             } else {
                 // if attribute empty and product not yet registered, add record
-                $checkStockExist = $this->model_stocks->getRawStockData($product['id']); // check if data stock exist
+                $checkStockExist = $this->model_stocks->getRawStockData(null, $product['id']); // check if data stock exist
             }
 
             if (empty($checkStockExist)) {
