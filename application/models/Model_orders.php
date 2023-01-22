@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 class Model_orders extends CI_Model
 {
@@ -10,7 +10,7 @@ class Model_orders extends CI_Model
 	/* get the orders data */
 	public function getOrdersData($id = null)
 	{
-		if($id) {
+		if ($id) {
 			$sql = "SELECT * FROM `orders` WHERE id = ?";
 			$query = $this->db->query($sql, array($id));
 			return $query->row_array();
@@ -24,7 +24,7 @@ class Model_orders extends CI_Model
 	// get the orders item data
 	public function getOrdersItemData($order_id = null)
 	{
-		if(!$order_id) {
+		if (!$order_id) {
 			return false;
 		}
 
@@ -36,57 +36,64 @@ class Model_orders extends CI_Model
 	public function create()
 	{
 		$user_id = $this->session->userdata('id');
-		$bill_no = 'BILPR-'.strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
-    	$data = array(
-    		'bill_no' => $bill_no,
-    		'customer_name' => $this->input->post('customer_name'),
-    		'customer_address' => $this->input->post('customer_address'),
-    		'customer_phone' => $this->input->post('customer_phone'),
-    		'date_time' => strtotime(date('Y-m-d h:i:s a')),
-    		'gross_amount' => $this->input->post('gross_amount_value'),
-    		'service_charge_rate' => $this->input->post('service_charge_rate'),
-    		'service_charge' => ($this->input->post('service_charge_value') > 0) ?$this->input->post('service_charge_value'):0,
-    		'vat_charge_rate' => $this->input->post('vat_charge_rate'),
-    		'vat_charge' => ($this->input->post('vat_charge_value') > 0) ? $this->input->post('vat_charge_value') : 0,
-    		'net_amount' => $this->input->post('net_amount_value'),
-    		'discount' => $this->input->post('discount'),
-    		'paid_status' => 2,
-    		'user_id' => $user_id
-    	);
+		$bill_no = 'BILPR-' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
+		$data = array(
+			'bill_no' => $bill_no,
+			'customer_name' => $this->input->post('customer_name'),
+			'customer_address' => $this->input->post('customer_address'),
+			'customer_phone' => $this->input->post('customer_phone'),
+			'date_time' => strtotime(date('Y-m-d h:i:s a')),
+			'gross_amount' => $this->input->post('gross_amount_value'),
+			'service_charge_rate' => $this->input->post('service_charge_rate'),
+			'service_charge' => ($this->input->post('service_charge_value') > 0) ? $this->input->post('service_charge_value') : 0,
+			'vat_charge_rate' => $this->input->post('vat_charge_rate'),
+			'vat_charge' => ($this->input->post('vat_charge_value') > 0) ? $this->input->post('vat_charge_value') : 0,
+			'net_amount' => $this->input->post('net_amount_value'),
+			'discount' => $this->input->post('discount'),
+			'paid_status' => 2,
+			'user_id' => $user_id
+		);
 
-		$insert = $this->db->insert('orders', $data);
+		$insert = $this->db->insert('orders', $data); // comment sementara
 		$order_id = $this->db->insert_id();
 
-		$this->load->model('model_products');
+		$this->load->model('model_stocks');
 
 		$count_product = count($this->input->post('product'));
-    	for($x = 0; $x < $count_product; $x++) {
-    		$items = array(
-    			'order_id' => $order_id,
-    			'product_id' => $this->input->post('product')[$x],
-    			'qty' => $this->input->post('qty')[$x],
-    			'rate' => $this->input->post('rate_value')[$x],
-    			'amount' => $this->input->post('amount_value')[$x],
-    		);
+		for ($x = 0; $x < $count_product; $x++) {
+			$attribute_id = $this->input->post('attribute')[$x] ?? null;
+			// check stock_id availability before create data
+			$stock = $this->model_stocks->getRawStockData(null, $this->input->post('product')[$x], $attribute_id ?? null);
 
-    		$this->db->insert('orders_item', $items);
+			if ($stock) {
+				$items = array(
+					'order_id' => $order_id,
+					'stock_id' => $stock[0]['id'],
+					'qty' => $this->input->post('qty')[$x],
+					'rate' => $this->input->post('rate_value')[$x],
+					'amount' => $this->input->post('amount_value')[$x],
+				);
 
-    		// now decrease the stock FROM `the` product
-    		$product_data = $this->model_products->getProductData($this->input->post('product')[$x]);
-    		$qty = (int) $product_data['qty'] - (int) $this->input->post('qty')[$x];
+				$this->db->insert('orders_item', $items);
 
-    		$update_product = array('qty' => $qty);
+				// now decrease the stock FROM `the` stocks
+				$stock_data = $this->model_stocks->getRawStockData($stock[0]['id'], null, $attribute_id ?? null);
+				$qty = (int) $stock_data[0]['qty'] - (int) $this->input->post('qty')[$x];
 
 
-    		$this->model_products->update($update_product, $this->input->post('product')[$x]);
-    	}
+
+				$update_stock = array('qty' => $qty);
+
+				$this->model_stocks->update($update_stock, $stock[0]['id']);
+			}
+		}
 
 		return ($order_id) ? $order_id : false;
 	}
 
 	public function countOrderItem($order_id)
 	{
-		if($order_id) {
+		if ($order_id) {
 			$sql = "SELECT * FROM `orders_item` WHERE order_id = ?";
 			$query = $this->db->query($sql, array($order_id));
 			return $query->num_rows();
@@ -95,24 +102,24 @@ class Model_orders extends CI_Model
 
 	public function update($id)
 	{
-		if($id) {
+		if ($id) {
 			$user_id = $this->session->userdata('id');
 			// fetch the order data 
 
 			$data = array(
 				'customer_name' => $this->input->post('customer_name'),
-	    		'customer_address' => $this->input->post('customer_address'),
-	    		'customer_phone' => $this->input->post('customer_phone'),
-	    		'gross_amount' => $this->input->post('gross_amount_value'),
-	    		'service_charge_rate' => $this->input->post('service_charge_rate'),
-	    		'service_charge' => ($this->input->post('service_charge_value') > 0) ? $this->input->post('service_charge_value'):0,
-	    		'vat_charge_rate' => $this->input->post('vat_charge_rate'),
-	    		'vat_charge' => ($this->input->post('vat_charge_value') > 0) ? $this->input->post('vat_charge_value') : 0,
-	    		'net_amount' => $this->input->post('net_amount_value'),
-	    		'discount' => $this->input->post('discount'),
-	    		'paid_status' => $this->input->post('paid_status'),
-	    		'user_id' => $user_id
-	    	);
+				'customer_address' => $this->input->post('customer_address'),
+				'customer_phone' => $this->input->post('customer_phone'),
+				'gross_amount' => $this->input->post('gross_amount_value'),
+				'service_charge_rate' => $this->input->post('service_charge_rate'),
+				'service_charge' => ($this->input->post('service_charge_value') > 0) ? $this->input->post('service_charge_value') : 0,
+				'vat_charge_rate' => $this->input->post('vat_charge_rate'),
+				'vat_charge' => ($this->input->post('vat_charge_value') > 0) ? $this->input->post('vat_charge_value') : 0,
+				'net_amount' => $this->input->post('net_amount_value'),
+				'discount' => $this->input->post('discount'),
+				'paid_status' => $this->input->post('paid_status'),
+				'user_id' => $user_id
+			);
 
 			$this->db->where('id', $id);
 			$update = $this->db->update('orders', $data);
@@ -128,7 +135,7 @@ class Model_orders extends CI_Model
 				$product_data = $this->model_products->getProductData($product_id);
 				$update_qty = $qty + $product_data['qty'];
 				$update_product_data = array('qty' => $update_qty);
-				
+
 				// update the product qty
 				$this->model_products->update($update_product_data, $product_id);
 			}
@@ -139,23 +146,23 @@ class Model_orders extends CI_Model
 
 			// now decrease the product qty
 			$count_product = count($this->input->post('product'));
-	    	for($x = 0; $x < $count_product; $x++) {
-	    		$items = array(
-	    			'order_id' => $id,
-	    			'product_id' => $this->input->post('product')[$x],
-	    			'qty' => $this->input->post('qty')[$x],
-	    			'rate' => $this->input->post('rate_value')[$x],
-	    			'amount' => $this->input->post('amount_value')[$x],
-	    		);
-	    		$this->db->insert('orders_item', $items);
+			for ($x = 0; $x < $count_product; $x++) {
+				$items = array(
+					'order_id' => $id,
+					'product_id' => $this->input->post('product')[$x],
+					'qty' => $this->input->post('qty')[$x],
+					'rate' => $this->input->post('rate_value')[$x],
+					'amount' => $this->input->post('amount_value')[$x],
+				);
+				$this->db->insert('orders_item', $items);
 
-	    		// now decrease the stock FROM `the` product
-	    		$product_data = $this->model_products->getProductData($this->input->post('product')[$x]);
-	    		$qty = (int) $product_data['qty'] - (int) $this->input->post('qty')[$x];
+				// now decrease the stock FROM `the` product
+				$product_data = $this->model_products->getProductData($this->input->post('product')[$x]);
+				$qty = (int) $product_data['qty'] - (int) $this->input->post('qty')[$x];
 
-	    		$update_product = array('qty' => $qty);
-	    		$this->model_products->update($update_product, $this->input->post('product')[$x]);
-	    	}
+				$update_product = array('qty' => $qty);
+				$this->model_products->update($update_product, $this->input->post('product')[$x]);
+			}
 
 			return true;
 		}
@@ -165,7 +172,7 @@ class Model_orders extends CI_Model
 
 	public function remove($id)
 	{
-		if($id) {
+		if ($id) {
 			$this->db->where('id', $id);
 			$delete = $this->db->delete('orders');
 
@@ -181,5 +188,4 @@ class Model_orders extends CI_Model
 		$query = $this->db->query($sql, array(1));
 		return $query->num_rows();
 	}
-
 }
